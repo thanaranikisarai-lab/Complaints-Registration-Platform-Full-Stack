@@ -1,4 +1,4 @@
-const BACKEND_BASE_URL = 'http://localhost:3000/api';
+const BACKEND_BASE_URL = 'https://complaints-registration-platform-full-2ydu.onrender.com';
 
 // State Management
 const state = {
