@@ -1,4 +1,7 @@
-const BACKEND_BASE_URL = 'https://complaints-registration-platform-full-2ydu.onrender.com';
+const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+const BACKEND_BASE_URL = isLocalhost 
+    ? 'http://localhost:3000/api' 
+    : 'https://complaints-registration-platform-full-2ydu.onrender.com/api';
 
 // State Management
 const state = {

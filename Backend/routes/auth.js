@@ -25,6 +25,7 @@ export const authenticateToken = (req, res, next) => {
 
 // POST /api/auth/register
 router.post('/register', async (req, res) => {
+  console.log('[AUTH] Entry: POST /register');
   const { name, email, password } = req.body;
 
   try {
@@ -33,6 +34,7 @@ router.post('/register', async (req, res) => {
     });
 
     if (existingUser) {
+      console.log('[AUTH] Exit: POST /register - Email already registered');
       return res.status(400).json({ message: 'Email already registered' });
     }
 
@@ -43,15 +45,17 @@ router.post('/register', async (req, res) => {
       isVerified: true
     });
 
+    console.log('[AUTH] Exit: POST /register - Registration successful');
     res.json({ success: true, message: 'Registration successful' });
   } catch (error) {
-    console.error(error);
+    console.error('[AUTH] Error in POST /register:', error);
     res.status(500).json({ message: 'Registration failed' });
   }
 });
 
 // POST /api/auth/login
 router.post('/login', async (req, res) => {
+  console.log('[AUTH] Entry: POST /login');
   const { email, password } = req.body;
 
   try {
@@ -60,32 +64,43 @@ router.post('/login', async (req, res) => {
     });
 
     if (!user) {
+      console.log('[AUTH] Exit: POST /login - Invalid credentials');
       return res.status(401).json({ message: 'Invalid credentials or unverified account' });
     }
 
     const token = jwt.sign({ id: user.id, email: user.email, role: user.role, name: user.name }, process.env.JWT_SECRET);
 
     res.cookie('token', token, {
-      httpOnly: false, // Per requirements
-      secure: false,   // Per requirements
-      sameSite: 'lax'
+      httpOnly: true,
+      secure: true,
+      sameSite: 'none'
     });
 
+    console.log('[AUTH] Exit: POST /login - Login successful');
     res.json({ name: user.name, email: user.email, role: user.role });
   } catch (error) {
+    console.error('[AUTH] Error in POST /login:', error);
     res.status(500).json({ message: 'Login failed' });
   }
 });
 
 // POST /api/auth/logout
 router.post('/logout', (req, res) => {
-  res.clearCookie('token');
+  console.log('[AUTH] Entry: POST /logout');
+  res.clearCookie('token', {
+    httpOnly: true,
+    secure: true,
+    sameSite: 'none'
+  });
+  console.log('[AUTH] Exit: POST /logout - Logout successful');
   res.json({ success: true });
 });
 
 // GET /api/auth/me
 router.get('/me', authenticateToken, (req, res) => {
+  console.log('[AUTH] Entry: GET /me');
   res.json({ name: req.user.name, email: req.user.email, role: req.user.role });
+  console.log('[AUTH] Exit: GET /me - Success');
 });
 
 export default router;

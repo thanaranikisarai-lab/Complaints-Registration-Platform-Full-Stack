@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import dotenv from 'dotenv';
+import morgan from 'morgan';
 import authRoutes from './routes/auth.js';
 import complaintRoutes from './routes/complaints.js';
 import aiRoutes from './routes/ai.js';
@@ -17,8 +18,21 @@ if (!process.env.DATABASE_URL || process.env.DATABASE_URL.includes('your_supabas
   process.exit(1);
 }
 
+const allowedOrigins = [
+  'http://localhost:5500',
+  'http://127.0.0.1:5500',
+  'https://thanaranikisarai-lab.github.io'
+];
+
 app.use(cors({
-  origin: true,
+  origin: (origin, callback) => {
+    // Allow requests with no origin (like mobile apps or curl)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.indexOf(origin) === -1) {
+      return callback(new Error('The CORS policy for this site does not allow access from the specified Origin.'), false);
+    }
+    return callback(null, true);
+  },
   credentials: true
 }));
 
@@ -28,6 +42,7 @@ app.get('/api/health', (req, res) => res.json({ status: 'ok', timestamp: new Dat
 
 app.use(express.json());
 app.use(cookieParser());
+app.use(morgan('dev'));
 
 // Routes
 app.use('/api/auth', authRoutes);
