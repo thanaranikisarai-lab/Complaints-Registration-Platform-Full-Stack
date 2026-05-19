@@ -1,4 +1,4 @@
-const BACKEND_BASE_URL = 'http://127.0.0.1:3000/api';
+const BACKEND_BASE_URL = 'http://localhost:3000/api';
 
 // State Management
 const state = {
@@ -33,8 +33,6 @@ const render = () => {
     // Render page content
     switch (state.currentPage) {
         case 'register': renderRegister(); break;
-        case 'otp': renderOTP(); break;
-        case 'password': renderPasswordSetup(); break;
         case 'login': renderLogin(); break;
         case 'submit-complaint': renderSubmitComplaint(); break;
         case 'my-complaints': renderMyComplaints(); break;
@@ -57,12 +55,12 @@ const apiCall = async (endpoint, method = 'GET', body = null) => {
         console.log(`Calling API: ${method} ${BACKEND_BASE_URL}${endpoint}`);
         const response = await fetch(`${BACKEND_BASE_URL}${endpoint}`, options);
         const data = await response.json();
-        
+
         if (!response.ok) {
             console.error('API Error Response:', data);
             throw new Error(data.message || 'Something went wrong');
         }
-        
+
         return data;
     } catch (err) {
         console.error('Fetch Error:', err);
@@ -90,67 +88,6 @@ const renderRegister = () => {
                     <label>Email Address</label>
                     <input type="email" id="reg-email" placeholder="john@example.com" required>
                 </div>
-                <div id="error-box" class="error-message"></div>
-                <button type="submit" id="reg-btn">Send OTP</button>
-                <button type="button" class="secondary-btn" onclick="navigateTo('login')">Already have an account? Login</button>
-            </form>
-        </div>
-    `;
-
-    document.getElementById('register-form').onsubmit = async (e) => {
-        e.preventDefault();
-        const btn = document.getElementById('reg-btn');
-        const errorBox = document.getElementById('error-box');
-        btn.disabled = true;
-        btn.innerHTML = '<div class="spinner"></div> Sending...';
-        
-        const name = document.getElementById('reg-name').value;
-        const email = document.getElementById('reg-email').value;
-
-        try {
-            await apiCall('/auth/send-otp', 'POST', { name, email });
-            state.registrationData.name = name;
-            state.registrationData.email = email;
-            navigateTo('otp');
-        } catch (err) {
-            errorBox.textContent = err.message;
-            errorBox.style.display = 'block';
-            btn.disabled = false;
-            btn.textContent = 'Send OTP';
-        }
-    };
-};
-
-const renderOTP = () => {
-    app.innerHTML = `
-        <div class="container">
-            <h1>Verify Email</h1>
-            <p class="subtitle">Enter the 6-digit code sent to ${state.registrationData.email}</p>
-            <form id="otp-form">
-                <div class="form-group">
-                    <label>OTP Code</label>
-                    <input type="text" id="otp-code" placeholder="123456" maxlength="6" required>
-                </div>
-                <div id="error-box" class="error-message"></div>
-                <button type="submit">Verify OTP</button>
-                <button type="button" class="secondary-btn" onclick="navigateTo('register')">Back</button>
-            </form>
-        </div>
-    `;
-
-    document.getElementById('otp-form').onsubmit = (e) => {
-        e.preventDefault();
-        state.registrationData.otp = document.getElementById('otp-code').value;
-        navigateTo('password');
-    };
-};
-
-const renderPasswordSetup = () => {
-    app.innerHTML = `
-        <div class="container">
-            <h1>Set Password</h1>
-            <p class="subtitle">Choose a secure password for your account.</p>
-            <form id="pw-form">
                 <div class="form-group">
                     <label>Password</label>
                     <input type="password" id="reg-pw" placeholder="••••••••" required>
@@ -160,16 +97,19 @@ const renderPasswordSetup = () => {
                     <input type="password" id="reg-pw-confirm" placeholder="••••••••" required>
                 </div>
                 <div id="error-box" class="error-message"></div>
-                <button type="submit" id="setup-btn">Complete Registration</button>
+                <button type="submit" id="reg-btn">Complete Registration</button>
+                <button type="button" class="secondary-btn" onclick="navigateTo('login')">Already have an account? Login</button>
             </form>
         </div>
     `;
 
-    document.getElementById('pw-form').onsubmit = async (e) => {
+    document.getElementById('register-form').onsubmit = async (e) => {
         e.preventDefault();
-        const btn = document.getElementById('setup-btn');
+        const btn = document.getElementById('reg-btn');
         const errorBox = document.getElementById('error-box');
-        
+
+        const name = document.getElementById('reg-name').value;
+        const email = document.getElementById('reg-email').value;
         const pw = document.getElementById('reg-pw').value;
         const confirm = document.getElementById('reg-pw-confirm').value;
 
@@ -183,11 +123,7 @@ const renderPasswordSetup = () => {
         btn.innerHTML = '<div class="spinner"></div> Registering...';
 
         try {
-            await apiCall('/auth/register', 'POST', {
-                email: state.registrationData.email,
-                otp: state.registrationData.otp,
-                password: pw
-            });
+            await apiCall('/auth/register', 'POST', { name, email, password: pw });
             alert('Registration successful! Please login.');
             navigateTo('login');
         } catch (err) {
@@ -345,13 +281,15 @@ const loadComplaints = async () => {
                 <div class="complaint-body">
                     <div>
                         <div class="label-small">Original Complaint</div>
-                        <p class="text-content">${c.complaintText}</p>
+                        <p class="text-content">${c.complaint}</p>
                     </div>
+                    ${c.aiQuestion ? `
                     <div class="ai-section">
                         <div class="label-small">AI Follow-up</div>
                         <p class="text-content"><strong>Q:</strong> ${c.aiQuestion}</p>
                         <p class="text-content"><strong>A:</strong> ${c.userAnswer}</p>
                     </div>
+                    ` : ''}
                 </div>
             </div>
         `).join('');
@@ -386,19 +324,21 @@ const loadAllComplaints = async () => {
         list.innerHTML = complaints.map(c => `
             <div class="complaint-card">
                 <div class="complaint-header">
-                    <span class="user-info">${c.userName} (${c.userEmail})</span>
+                    <span class="user-info">${c.name} (${c.city} - ${c.mobile})</span>
                     <span class="complaint-date">${new Date(c.createdAt).toLocaleDateString()}</span>
                 </div>
                 <div class="complaint-body">
                     <div>
                         <div class="label-small">Complaint</div>
-                        <p class="text-content">${c.complaintText}</p>
+                        <p class="text-content">${c.complaint}</p>
                     </div>
+                    ${c.aiQuestion ? `
                     <div class="ai-section">
                         <div class="label-small">AI Interaction</div>
                         <p class="text-content"><strong>Q:</strong> ${c.aiQuestion}</p>
                         <p class="text-content"><strong>A:</strong> ${c.userAnswer}</p>
                     </div>
+                    ` : ''}
                 </div>
             </div>
         `).join('');

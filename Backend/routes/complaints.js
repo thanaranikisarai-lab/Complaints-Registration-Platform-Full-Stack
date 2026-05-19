@@ -37,6 +37,20 @@ router.post('/', async (req, res) => {
   }
 });
 
+// GET /api/complaints/my - Fetch complaints for logged in user
+router.get('/my', authenticateToken, async (req, res) => {
+  try {
+    const myComplaints = await db.select()
+      .from(complaints)
+      .where(eq(complaints.name, req.user.name))
+      .orderBy(desc(complaints.createdAt));
+
+    res.json(myComplaints);
+  } catch (error) {
+    res.status(500).json({ message: 'Failed to fetch your complaints' });
+  }
+});
+
 // GET /api/complaints/all - Admin Only
 router.get('/all', authenticateToken, isAdmin, async (req, res) => {
   try {

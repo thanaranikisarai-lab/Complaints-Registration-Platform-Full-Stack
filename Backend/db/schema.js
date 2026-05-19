@@ -13,7 +13,7 @@ export const users = pgTable('users', {
 });
 
 export const complaints = pgTable('complaints', {
-  id: bigint('id', { mode: 'number' }).primaryKey().generatedByDefaultAsIdentity(),
+  id: serial('id').primaryKey(),
   name: text('name').notNull(),
   city: text('city').notNull(),
   mobile: text('mobile').notNull(),

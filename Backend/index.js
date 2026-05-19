@@ -17,23 +17,8 @@ if (!process.env.DATABASE_URL || process.env.DATABASE_URL.includes('your_supabas
   process.exit(1);
 }
 
-const allowedOrigins = [
-  'http://localhost:5500',
-  'http://127.0.0.1:5500',
-  'http://localhost:5501',
-  'http://127.0.0.1:5501',
-  process.env.FRONTEND_URL
-].filter(Boolean);
-
 app.use(cors({
-  origin: (origin, callback) => {
-    // Allow requests with no origin (like mobile apps or curl)
-    if (!origin) return callback(null, true);
-    if (allowedOrigins.indexOf(origin) === -1) {
-      return callback(new Error('The CORS policy for this site does not allow access from the specified Origin.'), false);
-    }
-    return callback(null, true);
-  },
+  origin: true,
   credentials: true
 }));
 
@@ -48,6 +33,17 @@ app.use(cookieParser());
 app.use('/api/auth', authRoutes);
 app.use('/api/complaints', complaintRoutes);
 app.use('/api/ai', aiRoutes);
+
+// Global 404 Handler
+app.use((req, res) => {
+  res.status(404).json({ message: `Route ${req.method} ${req.url} not found` });
+});
+
+// Global Error Handler
+app.use((err, req, res, next) => {
+  console.error(err);
+  res.status(500).json({ message: err.message || 'Internal Server Error' });
+});
 
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
